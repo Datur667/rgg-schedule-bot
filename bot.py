@@ -24,7 +24,7 @@ from telegram.ext import (
 
 # ==================== НАСТРОЙКИ ====================
 # Вставь сюда токен бота от @BotFather
-BOT_TOKEN = "8958084409:AAEp3Dr--Ol5RMwKffisFs0ID_vPAjIKnvA"
+BOT_TOKEN = "8958084409:AAE3KgbeIf1bjBXEUY4wCVEu5x-m0AF_l_M"
 
 # ==================== РАСПИСАНИЕ ====================
 # Неделя 1
