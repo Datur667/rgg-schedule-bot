@@ -33,8 +33,26 @@ NOTIFY_TIMES = [
 ]
 
 # ==================== НАСТРОЙКИ ====================
-# Вставь сюда токен бота от @BotFather
-BOT_TOKEN = "8958084409:AAE3KgbeIf1bjBXEUY4wCVEu5x-m0AF_l_M"
+import os
+from aiogram import Bot
+from aiogram.enums import ParseMode
+
+# Получаем токен из переменной среды
+token = os.getenv("TELEGRAM_BOT_TOKEN")
+
+if not token:
+    raise RuntimeError("Переменная TELEGRAM_BOT_TOKEN не задана!")
+
+bot = Bot(token=token)
+
+async def main():
+    me = await bot.get_me()
+    print(f"Бот запущен: @{me.username}")
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
+
 
 # ==================== РАСПИСАНИЕ ====================
 # Неделя 1
