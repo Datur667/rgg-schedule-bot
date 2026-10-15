@@ -34,7 +34,7 @@ NOTIFY_TIMES = [
 
 # ==================== НАСТРОЙКИ ====================
 # Вставь сюда токен бота от @BotFather
-BOT_TOKEN = "8958084409:AAE3KgbeIf1bjBXEUY4wCVEu5x-m0AF_l_M"
+BOT_TOKEN = "8958084409:AAGpHj-WOdvfI-367zCfHBxmy6XhvnDsqWo"
 
 # ==================== РАСПИСАНИЕ ====================
 # Неделя 1
