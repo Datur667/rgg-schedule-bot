@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 """
 Telegram бот: Расписание РГГУ
-Две чередующиеся недели, кнопки: сегодня / сейчас / неделя / след. неделя
+Использует библиотеку python-telegram-bot (v20+)
 """
 
+import os
 import logging
 from datetime import datetime, time
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from zoneinfo import ZoneInfo
 
-from telegram import (
-    Update,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-)
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -32,30 +29,7 @@ NOTIFY_TIMES = [
     time(20, 0, tzinfo=MSK),   # 20:00
 ]
 
-# ==================== НАСТРОЙКИ ====================
-import os
-from aiogram import Bot
-from aiogram.enums import ParseMode
-
-# Получаем токен из переменной среды
-token = os.getenv("TELEGRAM_BOT_TOKEN")
-
-if not token:
-    raise RuntimeError("Переменная TELEGRAM_BOT_TOKEN не задана!")
-
-bot = Bot(token=token)
-
-async def main():
-    me = await bot.get_me()
-    print(f"Бот запущен: @{me.username}")
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
-
-
 # ==================== РАСПИСАНИЕ ====================
-# Неделя 1
 WEEK_1: Dict[str, List[Dict[str, str]]] = {
     "пн": [
         {"time": "9:00 - 10:00", "subject": "разговоры о важном"},
@@ -87,7 +61,6 @@ WEEK_1: Dict[str, List[Dict[str, str]]] = {
     ],
 }
 
-# Неделя 2
 WEEK_2: Dict[str, List[Dict[str, str]]] = {
     "пн": [
         {"time": "9:00 - 10:00", "subject": "разговоры о важном"},
@@ -123,35 +96,18 @@ WEEK_2: Dict[str, List[Dict[str, str]]] = {
 SCHEDULES = {1: WEEK_1, 2: WEEK_2}
 
 DAY_NAMES = {
-    0: "пн",
-    1: "вт",
-    2: "ср",
-    3: "чт",
-    4: "пт",
-    5: "сб",
-    6: "вс",
+    0: "пн", 1: "вт", 2: "ср", 3: "чт", 4: "пт", 5: "сб", 6: "вс",
 }
 
 DAY_FULL = {
-    "пн": "понедельник",
-    "вт": "вторник",
-    "ср": "среда",
-    "чт": "четверг",
-    "пт": "пятница",
-    "сб": "суббота",
-    "вс": "воскресенье",
+    "пн": "понедельник", "вт": "вторник", "ср": "среда",
+    "чт": "четверг", "пт": "пятница", "сб": "суббота", "вс": "воскресенье",
 }
 
 DAY_EMOJI = {
-    "пн": "1️⃣",
-    "вт": "2️⃣",
-    "ср": "3️⃣",
-    "чт": "4️⃣",
-    "пт": "5️⃣",
-    "сб": "💤",
-    "вс": "💤",
+    "пн": "1️⃣", "вт": "2️⃣", "ср": "3️⃣", "чт": "4️⃣", "пт": "5️⃣",
+    "сб": "💤", "вс": "💤",
 }
-
 
 # ==================== ЛОГИКА ====================
 logging.basicConfig(
@@ -161,12 +117,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_week_number(dt: Optional[datetime] = None) -> int:
-    """Определяет номер недели (1 или 2) по ISO-неделе года.
-    Сейчас (окт 2026) идёт 1-я неделя → чётная ISO-неделя = 1.
-    """
     if dt is None:
         dt = datetime.now()
-    iso_week = dt.isocalendar()[1]
+    iso_week = dt.isocalendar()
     return 1 if iso_week % 2 == 0 else 2
 
 
@@ -177,12 +130,10 @@ def get_day_key(dt: Optional[datetime] = None) -> str:
 
 
 def format_schedule(day_key: str, week: int, date_str: str = "", label: str = "") -> str:
-    """Красивое оформление расписания на день."""
-    schedule = SCHEDULES.get(week, {}).get(day_key, [])
+    schedule = SCHEDULES.get(week, {}).get(day_key, )
     full_day = DAY_FULL.get(day_key, day_key).capitalize()
     emoji = DAY_EMOJI.get(day_key, "📌")
 
-    # Заголовок
     header = f"{emoji} <b>{full_day}</b>"
     if date_str:
         header += f"  ·  <code>{date_str}</code>"
@@ -203,9 +154,8 @@ def format_schedule(day_key: str, week: int, date_str: str = "", label: str = ""
 
 
 def get_current_pair(week: int, day_key: str) -> Optional[Dict]:
-    """Возвращает текущую пару или None."""
     now = datetime.now().time()
-    schedule = SCHEDULES.get(week, {}).get(day_key, [])
+    schedule = SCHEDULES.get(week, {}).get(day_key, )
     if not schedule:
         return None
 
@@ -224,7 +174,6 @@ def get_current_pair(week: int, day_key: str) -> Optional[Dict]:
 
 
 def main_keyboard() -> InlineKeyboardMarkup:
-    """Главное меню."""
     buttons = [
         [
             InlineKeyboardButton("📅  Сегодня", callback_data="cmd_today"),
@@ -243,7 +192,6 @@ def main_keyboard() -> InlineKeyboardMarkup:
 
 
 def week_days_keyboard(week: int) -> InlineKeyboardMarkup:
-    """Кнопки дней + переключение недель."""
     buttons = [
         [
             InlineKeyboardButton("Пн", callback_data=f"day_{week}_пн"),
@@ -267,7 +215,6 @@ def week_days_keyboard(week: int) -> InlineKeyboardMarkup:
 
 # ==================== ХЕНДЛЕРЫ ====================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # Сохраняем chat_id для ежедневных уведомлений
     chat_id = update.effective_chat.id
     context.application.bot_data.setdefault("subscribers", set()).add(chat_id)
 
@@ -388,14 +335,14 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
 
     if data.startswith("week_"):
-        week = int(data.split("_")[1])
+        week = int(data.split("_"))
         await send_week(update, context, week=week, is_callback=True)
         return
 
     if data.startswith("day_"):
         parts = data.split("_")
-        week = int(parts[1])
-        day_key = parts[2]
+        week = int(parts)
+        day_key = parts
         text = format_schedule(day_key, week, label=f"неделя {week}")
         text += f"\n\n────────────────\nнеделя {week}"
         await query.edit_message_text(
@@ -430,7 +377,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
 
 async def daily_schedule_job(context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Каждый день отправляет расписание на сегодня всем подписчикам (07:30 и 20:00 МСК)."""
     subscribers = context.application.bot_data.get("subscribers", set())
     if not subscribers:
         return
@@ -456,9 +402,14 @@ async def daily_schedule_job(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 def main() -> None:
+    # Получаем токен из переменных среды
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    if not token:
+        raise RuntimeError("Ошибка: переменная TELEGRAM_BOT_TOKEN не задана!")
+
     app = (
         Application.builder()
-        .token(BOT_TOKEN)
+        .token(token)
         .build()
     )
 
@@ -466,7 +417,7 @@ def main() -> None:
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
-    # Ежедневные уведомления: 07:30 и 20:00 по Москве
+    # Ежедневные уведомления
     if app.job_queue:
         for i, t in enumerate(NOTIFY_TIMES):
             app.job_queue.run_daily(
@@ -484,4 +435,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
