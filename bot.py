@@ -115,7 +115,7 @@ def get_week_number(dt: Optional[datetime] = None) -> int:
     if dt is None:
         dt = datetime.now()
     iso_calendar = dt.isocalendar()
-    iso_week = iso_calendar.week  # берём именно атрибут .week
+    iso_week = iso_calendar.week
     return 1 if iso_week % 2 == 0 else 2
 
 
@@ -126,7 +126,7 @@ def get_day_key(dt: Optional[datetime] = None) -> str:
 
 
 def format_schedule(day_key: str, week: int, date_str: str = "", label: str = "") -> str:
-    schedule = SCHEDULES.get(week, {}).get(day_key, [])
+    schedule = SCHEDULES.get(week, {}).get(day_key, )
     full_day = DAY_FULL.get(day_key, day_key).capitalize()
     emoji = DAY_EMOJI.get(day_key, "📌")
 
@@ -151,7 +151,7 @@ def format_schedule(day_key: str, week: int, date_str: str = "", label: str = ""
 
 def get_current_pair(week: int, day_key: str) -> Optional[Dict]:
     now = datetime.now().time()
-    schedule = SCHEDULES.get(week, {}).get(day_key, [])
+    schedule = SCHEDULES.get(week, {}).get(day_key, )
     if not schedule:
         return None
 
@@ -327,4 +327,69 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if data == "cmd_next_week":
         next_week = 2 if get_week_number() == 1 else 1
-        await send_week(update, context, week=next_
+        await send_week(update, context, week=next_week, is_callback=True)
+        return
+
+    if data.startswith("week_"):
+        week = int(data.split("_"))
+        await send_week(update, context, week=week, is_callback=True)
+        return
+
+    if data.startswith("day_"):
+        parts = data.split("_")
+        week = int(parts)
+        day_key = parts
+        text = format_schedule(day_key, week, label=f"неделя {week}")
+        text += f"\n\n────────────────\nнеделя {week}"
+        await query.edit_message_text(
+            text,
+            parse_mode="HTML",
+            reply_markup=week_days_keyboard(week),
+        )
+        return
+
+
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text = (update.message.text or "").lower().strip()
+
+    if text in ("сегодня", "today"):
+        await send_today(update, context)
+    elif text in ("сейчас", "now"):
+        await send_now(update, context)
+    elif text == "неделя":
+        await send_week(update, context)
+    elif text in ("след. неделя", "следующая неделя", "след неделя"):
+        next_week = 2 if get_week_number() == 1 else 1
+        await send_week(update, context, week=next_week)
+    elif text in ("1 неделя", "1неделя"):
+        await send_week(update, context, week=1)
+    elif text in ("2 неделя", "2неделя"):
+        await send_week(update, context, week=2)
+    else:
+        await update.message.reply_text(
+            "👇  Используй кнопки",
+            reply_markup=main_keyboard(),
+        )
+
+
+def main() -> None:
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    if not token:
+        raise RuntimeError("Ошибка: переменная TELEGRAM_BOT_TOKEN не задана!")
+
+    app = (
+        Application.builder()
+        .token(token)
+        .build()
+    )
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(handle_callback))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+
+    print("Бот запущен... (Ctrl+C для остановки)")
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
+
+
+if __name__ == "__main__":
+    main()
